@@ -1,10 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>JLS BARCODE GENERATION</title>
+
   <!-- Barcode library -->
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json" />
+
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -13,249 +19,153 @@
       align-items: center;
       justify-content: flex-start;
       min-height: 100vh;
+      background: #f5f5f5;
       margin: 0;
       padding: 20px;
-      background: #f5f5f5;
     }
-    h1 {
-      font-size: 24px;
-      margin-bottom: 6px;
-    }
-    .hint {
-      font-size: 14px;
-      color: #666;
-      margin-bottom: 12px;
-    }
-    .form {
+    h1 { font-size: 26px; margin-bottom: 4px; }
+    .hint { color: #666; margin-bottom: 18px; }
+
+    form {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-bottom: 20px;
       width: 100%;
-      max-width: 400px;
+      max-width: 420px;
     }
-    label {
-      font-size: 16px;
-    }
+
     input {
       font-size: 22px;
       padding: 8px 10px;
       border-radius: 6px;
       border: 1px solid #bbb;
     }
-    input:focus {
-      outline: 2px solid #007bff;
-      border-color: #007bff;
-    }
+
     button {
       font-size: 20px;
-      padding: 10px;
+      padding: 14px;
       border-radius: 8px;
+      background: #0066ff;
       border: none;
-      background: #007bff;
       color: white;
       cursor: pointer;
-    }
-    button:active {
-      background: #0056b3;
-    }
-    .preview-wrapper {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
       margin-top: 10px;
-      min-width: 260px;
-    }
-    .text-line {
-      text-align: center;
-      font-size: 16px;
-      margin-top: 5px;
-    }
-    .history-wrapper {
-      margin-top: 16px;
-      width: 100%;
-      max-width: 400px;
-      font-size: 14px;
-      color: #333;
-    }
-    .history-title {
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .history-list {
-      list-style: none;
-      padding-left: 0;
-      margin: 0;
-      border-radius: 8px;
-      background: #ffffff;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      overflow: hidden;
-    }
-    .history-item {
-      padding: 6px 10px;
-      border-bottom: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-    }
-    .history-item:last-child {
-      border-bottom: none;
-    }
-    .history-code {
-      font-weight: 600;
-    }
-    .history-time {
-      color: #777;
     }
 
-    /* Print style: only the label area prints */
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      .preview-wrapper, .preview-wrapper * {
-        visibility: visible;
-      }
-      .preview-wrapper {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        margin: 0 auto;
-        box-shadow: none;
-      }
+    .preview-box {
+      background: white;
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .history {
+      margin-top: 25px;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .history-row {
+      background: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
     }
   </style>
 </head>
+
 <body>
+
   <h1>JLS BARCODE GENERATION</h1>
   <div class="hint">Type Code → Enter → Type Qty → Enter to print. Last 3 labels shown below.</div>
 
-  <div class="form">
-    <div>
-      <label for="item">Item Code:</label>
-      <input type="text" id="item" required autocomplete="off" placeholder="e.g. 50000" />
-    </div>
-    <div>
-      <label for="qty">Quantity:</label>
-      <input type="text" id="qty" required autocomplete="off" placeholder="e.g. 4.5" />
-    </div>
-    <button type="button" id="printBtn">Print Label</button>
-  </div>
+  <form id="form">
+    <label>Item Code:</label>
+    <input id="code" placeholder="e.g. 50000" autofocus />
 
-  <div class="preview-wrapper">
+    <label>Quantity:</label>
+    <input id="qty" placeholder="e.g. 4.5" />
+  </form>
+
+  <button id="printBtn">Print Label</button>
+
+  <div class="preview-box">
     <svg id="barcode"></svg>
-    <div class="text-line" id="labelText"></div>
+    <div id="labelText"></div>
   </div>
 
-  <div class="history-wrapper">
-    <div class="history-title">Last 3 printed labels:</div>
-    <ul class="history-list" id="historyList">
-    </ul>
+  <div class="history">
+    <b>Last 3 printed labels:</b>
+    <div id="historyList"></div>
   </div>
 
   <script>
-    const printBtn    = document.getElementById('printBtn');
-    const barcodeSvg  = document.getElementById('barcode');
-    const labelText   = document.getElementById('labelText');
-    const itemInput   = document.getElementById('item');
-    const qtyInput    = document.getElementById('qty');
-    const historyList = document.getElementById('historyList');
+    const codeInput = document.getElementById("code");
+    const qtyInput = document.getElementById("qty");
+    const preview = document.getElementById("barcode");
+    const previewText = document.getElementById("labelText");
+    const historyList = document.getElementById("historyList");
 
-    let lastLabels = [];
+    let history = [];
 
-    window.addEventListener('load', () => {
-      itemInput.focus();
-    });
+    function generateLabel() {
+      const code = codeInput.value.trim();
+      const qty = qtyInput.value.trim();
+      if (!code || !qty) return;
 
-    function generate() {
-      const item = itemInput.value.trim();
-      const qty  = qtyInput.value.trim();
-      if (!item || !qty) return;
-
-      const encoded = item + '|' + qty;
-
-      JsBarcode(barcodeSvg, encoded, {
-        format: "CODE128",
-        lineColor: "#000000",
-        width: 2,
-        height: 80,
-        displayValue: false,
-        margin: 10
-      });
-
-      labelText.textContent = `Code: ${item}    Qty: ${qty}`;
+      JsBarcode("#barcode", code, { width: 2, height: 80 });
+      previewText.innerHTML = `Code: ${code} &nbsp;&nbsp; Qty: ${qty}`;
     }
 
-    function updatePreviewIfReady() {
-      const item = itemInput.value.trim();
-      const qty  = qtyInput.value.trim();
-      if (item && qty) {
-        generate();
-      } else {
-        barcodeSvg.innerHTML = "";
-        labelText.textContent = "";
-      }
-    }
+    // Auto-generate when typing
+    codeInput.addEventListener("input", generateLabel);
+    qtyInput.addEventListener("input", generateLabel);
 
-    function addToHistory(item, qty) {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-      lastLabels.push({ item, qty, time: timeStr });
-      if (lastLabels.length > 3) {
-        lastLabels = lastLabels.slice(-3);
-      }
-
-      historyList.innerHTML = "";
-      [...lastLabels].reverse().forEach(entry => {
-        const li = document.createElement('li');
-        li.className = 'history-item';
-        li.innerHTML = `
-          <span class="history-code">Code: ${entry.item} &nbsp; Qty: ${entry.qty}</span>
-          <span class="history-time">${entry.time}</span>
-        `;
-        historyList.appendChild(li);
-      });
-    }
-
-    function resetForNext() {
-      itemInput.value = "";
-      qtyInput.value  = "";
-      barcodeSvg.innerHTML = "";
-      labelText.textContent = "";
-      itemInput.focus();
-    }
-
-    itemInput.addEventListener('input', updatePreviewIfReady);
-    qtyInput.addEventListener('input', updatePreviewIfReady);
-
-    itemInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
+    // Handle Enter key printing
+    qtyInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
         e.preventDefault();
-        qtyInput.focus();
-        qtyInput.select();
+        printLabel();
       }
     });
 
-    qtyInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        printBtn.click();
-      }
-    });
+    document.getElementById("printBtn").addEventListener("click", printLabel);
 
-    printBtn.addEventListener('click', function () {
-      const item = itemInput.value.trim();
-      const qty  = qtyInput.value.trim();
-      if (!item || !qty) return;
+    function printLabel() {
+      const code = codeInput.value.trim();
+      const qty = qtyInput.value.trim();
+      if (!code || !qty) return;
 
-      generate();
       window.print();
 
-      addToHistory(item, qty);
-      resetForNext();
-    });
+      // Save history
+      const time = new Date().toLocaleTimeString();
+      history.unshift({ code, qty, time });
+      history = history.slice(0, 3);
+
+      renderHistory();
+
+      // Reset inputs
+      codeInput.value = "";
+      qtyInput.value = "";
+      preview.innerHTML = "";
+      previewText.innerHTML = "";
+      codeInput.focus();
+    }
+
+    function renderHistory() {
+      historyList.innerHTML = history
+        .map(h => `<div class="history-row"> Code: ${h.code} &nbsp; Qty: ${h.qty} <span>${h.time}</span></div>`)
+        .join("");
+    }
   </script>
+
 </body>
 </html>
