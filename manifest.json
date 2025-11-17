@@ -1,0 +1,8 @@
+{
+  "name": "JLS Barcode Generation",
+  "short_name": "JLS Barcode",
+  "start_url": "/jls-barcode/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff"
+}
